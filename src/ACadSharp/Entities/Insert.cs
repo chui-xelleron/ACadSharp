@@ -396,9 +396,9 @@ public class Insert : Entity
 	{
 		var world = Matrix4.GetArbitraryAxis(this.Normal);
 		XYZ basePoint = this.Block?.BlockEntity?.BasePoint ?? XYZ.Zero;
-		var translation = Transform.CreateTranslation(this.InsertPoint - basePoint);
 		var rotation = Transform.CreateRotation(XYZ.AxisZ, this.Rotation);
 		var scale = Transform.CreateScaling(new XYZ(this.XScale, this.YScale, this.ZScale));
+		var translation = Transform.CreateTranslation(this.InsertPoint - scale.ApplyTransform(basePoint));
 
 		return new Transform(world * translation.Matrix * rotation.Matrix * scale.Matrix);
 	}
