@@ -159,6 +159,9 @@ namespace ACadSharp.IO.SVG
 				case Wipeout wipeout:
 					this.writeWipeout(wipeout, transform);
 					break;
+				case Viewport viewport:
+					this.writeViewport(viewport, transform);
+					break;
 				default:
 					this.notify($"[{entity.ObjectName}] Entity not implemented.", NotificationType.NotImplemented);
 					break;
@@ -954,6 +957,41 @@ namespace ACadSharp.IO.SVG
 
 			this.WriteEndElement();
 		}
+
+		private void writeViewport(Viewport viewport, Transform transform)
+		{
+			// Viewports in paper space reference and display model space content.
+			// Select entities visible through this viewport and render them with
+			// the viewport's transform applied (center, scale factor).
+			var selectedEntities = viewport.SelectEntities(false).OfType<Entity>().ToList();
+
+			if (!selectedEntities.Any())
+			{
+				this.notify($"Viewport has no visible entities.", NotificationType.None);
+				return;
+			}
+
+			// Create a group for viewport content with clipping if needed
+			this.WriteStartElement("g");
+			this.WriteAttributeString("id", $"viewport-{viewport.Handle}");
+
+			// Apply viewport-specific transform: center position and scale factor
+			// Compose with the existing transform using matrix multiplication
+			var vpTransform = new Transform(
+				viewport.Center.ToPixelSize(this.Units),
+				new XYZ(viewport.ScaleFactor),
+				XYZ.Zero);
+			var merged = new Transform(transform.Matrix * vpTransform.Matrix);
+
+			// Render each entity selected by the viewport
+			foreach (var entity in selectedEntities)
+			{
+				this.writeEntity(entity, merged);
+			}
+
+			this.WriteEndElement();
+		}
+
 
 		private IEnumerable<XYZ> spatialFilterPoints(SpatialFilter filter, Transform transform)
 		{
